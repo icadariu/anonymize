@@ -13,6 +13,7 @@ import (
 type Engine struct {
 	transformers []rules.Transformer
 	stats        *Stats
+	state        *rules.State
 }
 
 type Stats struct {
@@ -72,7 +73,15 @@ func New(cfg *config.Config) (*Engine, error) {
 		ts = append(ts, t)
 	}
 
-	return &Engine{transformers: ts, stats: st}, nil
+	return &Engine{transformers: ts, stats: st, state: state}, nil
+}
+
+// Close drops all accumulated original-value mappings and releases the
+// transformer slice. Call it (typically via defer) after processing is done
+// so the GC can reclaim the memory that held real secrets.
+func (e *Engine) Close() {
+	e.state.Clear()
+	e.transformers = nil
 }
 
 func (e *Engine) Apply(line string) (string, error) {

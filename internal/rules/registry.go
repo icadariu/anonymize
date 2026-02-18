@@ -56,6 +56,27 @@ func NewState(cfg *config.Config, stats StatsSink) (*State, error) {
 	}, nil
 }
 
+// Clear drops all accumulated original-value mappings, making them
+// unreachable to the GC as soon as possible after processing finishes.
+// Go strings are immutable and cannot be zeroed; Clear releases the
+// references so the runtime can reclaim the backing memory.
+func (s *State) Clear() {
+	s.EmailLocalMap = nil
+	s.EmailDomainMap = nil
+	s.EmailLocalN = 0
+	s.EmailDomainN = 0
+	s.PublicIPMap = nil
+	s.PublicIPN = 0
+	s.HostMap = nil
+	s.HostN = 0
+	s.HostFirstLabelMap = nil
+	s.HostFirstLabelN = 0
+	s.HostOtherLabelMap = nil
+	s.HostOtherLabelN = 0
+	s.GenericMap = nil
+	s.GenericCount = nil
+}
+
 func BuildTransformer(rc config.RuleConfig, cfg *config.Config, st *State) (Transformer, error) {
 	switch rc.Type {
 	case "email_map":
