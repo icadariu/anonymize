@@ -10,6 +10,7 @@
 > - Key-value pairs with unusual quoting or formatting
 > - Malformed input that causes a rule to silently skip anonymization
 > - Configuration mistakes that cause the entire tool to exit without processing any data
+> - **In-memory retention**: real values are held as map keys for the duration of the run to ensure consistent mapping. The tool clears these maps and requests a GC pass before exiting, but Go strings are immutable and their underlying bytes are not zeroed. For high-sensitivity environments, also disable core dumps (`ulimit -c 0`) and ensure swap is encrypted or disabled.
 >
 >
 > **You are solely responsible for verifying the output.** Always inspect the sanitized result before sharing it to confirm that all sensitive data has been removed.
@@ -67,17 +68,6 @@ go build -o anonymize ./cmd/anonymize
 
 - Default: `~/.anonymize.toml`
 - Override: `--config /path/to/config.toml`
-
-This repository includes an example config:
-
-- `anonymize-example.toml`
-
-To get started:
-
-```bash
-cp anonymize-example.toml ~/.anonymize.toml
-# Edit ~/.anonymize.toml to add your own patterns and replacements
-```
 
 ### Basic usage
 
@@ -215,95 +205,15 @@ Repeated values map consistently within the same run.
 
 ---
 
-## 🛠 Example Config (`~/.anonymize.toml`)
+## 🛠 Configuration
 
-```toml
-version = 1
+The repository ships a fully commented example config that covers all available options:
 
-[engine]
-stats = false
-
-[ip]
-public_base = 111
-public_step = 11
-preserve_cidr = true
-
-keep_cidrs = [
-  "0.0.0.0/8",          # "This" network (RFC 1122)
-  "10.0.0.0/8",         # RFC 1918 private
-  "100.64.0.0/10",      # Shared Address Space / Carrier-Grade NAT (RFC 6598)
-  "127.0.0.0/8",        # Loopback (RFC 1122)
-  "169.254.0.0/16",     # Link-local (RFC 3927)
-  "172.16.0.0/12",      # RFC 1918 private
-  "192.0.0.0/24",       # IETF Protocol Assignments (RFC 6890)
-  "192.0.2.0/24",       # TEST-NET-1 / documentation (RFC 5737)
-  "192.88.99.0/24",     # 6to4 Relay Anycast (RFC 3068, deprecated RFC 7526)
-  "192.168.0.0/16",     # RFC 1918 private
-  "198.18.0.0/15",      # Benchmarking (RFC 2544)
-  "198.51.100.0/24",    # TEST-NET-2 / documentation (RFC 5737)
-  "203.0.113.0/24",     # TEST-NET-3 / documentation (RFC 5737)
-  "224.0.0.0/4",        # Multicast (RFC 1112)
-  "240.0.0.0/4",        # Reserved / future use (RFC 1112)
-  "255.255.255.255/32", # Limited broadcast (RFC 919)
-]
-
-[email]
-user_prefix = "user"
-domain_prefix = "example"
-domain_start_index = 1
-domain_tld = "com"
-
-[keys]
-redact_value = [
-  "user",
-  "username",
-  "principal",
-  "principalid",
-  "subject",
-  "sub",
-  "owner",
-  "requester",
-  "caller",
-  "email"
-]
-
-[[rules]]
-name = "emails"
-type = "email_map"
-enabled = true
-
-[[rules]]
-name = "ipv4_public_only"
-type = "ip_map"
-enabled = true
-
-[[rules]]
-name = "kv_redact_common_keys"
-type = "kv_redact"
-enabled = true
-
-[[rules]]
-name = "aws_account_id"
-type = "regex_map"
-enabled = true
-pattern = "\\b\\d{12}\\b"
-replacement_prefix = "aws-account-"
-
-[[rules]]
-name = "bearer_tokens"
-type = "regex_map"
-enabled = true
-pattern = "(?i)\\bBearer\\s+([A-Za-z0-9\\-\\._~\\+\\/]+=*)"
-group = 1
-replacement_prefix = "token-"
-
-[[rules]]
-name = "long_hex"
-type = "regex_map"
-enabled = true
-pattern = "\\b[a-f0-9]{32,}\\b"
-replacement_prefix = "hex-"
+```bash
+cp anonymize-example.toml ~/.anonymize.toml
 ```
+
+Open [`anonymize-example.toml`](anonymize-example.toml) to see every setting with inline documentation.
 
 ---
 
