@@ -1,0 +1,32 @@
+# Binaries
+anonymize
+anonymize.exe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Output of go coverage
+*.out
+
+# Go build cache
+bin/
+dist/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config override
+.anonymize.toml.local
+
+# Local config override (personal overrides, not committed)
+*.toml.local

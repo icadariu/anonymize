@@ -1,0 +1,149 @@
+# toml.example
+# Copy to: ~/.anonymize.toml
+# Then edit to fit your environment.
+
+version = 1
+
+[engine]
+# If true, prints per-rule counts to stderr at the end (same as CLI --stats).
+stats = false
+
+[static_replace]
+# Exact string replacements (NOT regex). Applied top-to-bottom, before other rules.
+# If ignore_case=true, replacements match case-insensitively.
+ignore_case = true
+
+# Tip: Put more specific strings before more general ones.
+values = [
+  { from = "prod-cluster-1", to = "cluster-A" },
+  { from = "eu-central-1", to = "region-1" },
+  { from = "subdomain.test.com", to = "host1.example.com" },
+  { from = "AcmeCorp", to = "ExampleCorp" },
+  { from = "foo", to = "BAR" },
+]
+
+[ip]
+# Public IPv4 mapping sequence:
+#   1st -> 111.111.111.111
+#   2nd -> 122.122.122.122
+public_base = 111
+public_step = 11
+
+# Keep /NN suffix for CIDR patterns.
+preserve_cidr = true
+
+# IPs in these CIDRs are kept AS-IS (not anonymized).
+# This is the full IANA special-purpose IPv4 range list. If you omit keep_cidrs entirely,
+# this same list is applied automatically as the built-in default.
+keep_cidrs = [
+  "0.0.0.0/8",          # "This" network (RFC 1122)
+  "10.0.0.0/8",         # RFC 1918 private
+  "100.64.0.0/10",      # Shared Address Space / CGNAT (RFC 6598)
+  "127.0.0.0/8",        # Loopback (RFC 1122)
+  "169.254.0.0/16",     # Link-local (RFC 3927)
+  "172.16.0.0/12",      # RFC 1918 private
+  "192.0.0.0/24",       # IETF Protocol Assignments (RFC 6890)
+  "192.0.2.0/24",       # TEST-NET-1 / documentation (RFC 5737)
+  "192.88.99.0/24",     # 6to4 Relay Anycast (RFC 3068, deprecated RFC 7526)
+  "192.168.0.0/16",     # RFC 1918 private
+  "198.18.0.0/15",      # Benchmarking (RFC 2544)
+  "198.51.100.0/24",    # TEST-NET-2 / documentation (RFC 5737)
+  "203.0.113.0/24",     # TEST-NET-3 / documentation (RFC 5737)
+  "224.0.0.0/4",        # Multicast (RFC 1112)
+  "240.0.0.0/4",        # Reserved / future use (RFC 1112)
+  "255.255.255.255/32", # Limited broadcast (RFC 919)
+]
+
+[email]
+# First unique email -> user@example1.com
+# Second -> user2@example1.com
+user_prefix = "user"
+
+# First unique email-domain -> example1.com, then example2.com, etc.
+domain_prefix = "example"
+domain_start_index = 1
+domain_tld = "com"
+
+[keys]
+# Redact values for these keys across formats: JSON/YAML/HCL/plain K=V.
+# Output becomes: REDACTED_<key> (e.g., REDACTED_user, REDACTED_principalid)
+redact_value = [
+  "user",
+  "username",
+  "principal",
+  "principalid",
+  "subject",
+  "sub",
+  "owner",
+  "requester",
+  "caller",
+  "email",
+  "host",
+  "hostname",
+]
+
+# ----------------------------
+# RULES (executed top-to-bottom)
+# ----------------------------
+
+# URL mapping (recommended if you implement it):
+# - maps hostnames consistently to exampleN.com
+# - preserves scheme/path/query
+[[rules]]
+name = "urls"
+type = "url_map"
+enabled = true
+
+# Bare hostname mapping in text (recommended if you implement it):
+# e.g. "google.com" -> "example3.com"
+[[rules]]
+name = "hostnames"
+type = "hostname_map"
+enabled = true
+
+[[rules]]
+name = "emails"
+type = "email_map"
+enabled = true
+
+[[rules]]
+name = "ipv4_public_only"
+type = "ip_map"
+enabled = true
+
+[[rules]]
+name = "kv_redact_common_keys"
+type = "kv_redact"
+enabled = true
+
+[[rules]]
+name = "aws_account_id"
+type = "regex_map"
+enabled = true
+pattern = "\\b\\d{12}\\b"
+replacement_prefix = "REDACTED_AWS_ACCOUNT"
+
+[[rules]]
+name = "bearer_tokens"
+type = "regex_map"
+enabled = true
+pattern = "(?i)\\bBearer\\s+([A-Za-z0-9\\-\\._~\\+\\/]+=*)"
+group = 1
+replacement_prefix = "REDACTED_TOKEN"
+
+[[rules]]
+name = "long_hex"
+type = "regex_map"
+enabled = true
+pattern = "\\b[a-f0-9]{32,}\\b"
+replacement_prefix = "REDACTED_HEX"
+
+# Fallback rule if you do NOT implement url_map/hostname_map.
+# Keep disabled if url_map/hostname_map is enabled to avoid double-mapping.
+[[rules]]
+name = "url_hostnames_fallback"
+type = "regex_map"
+enabled = false
+pattern = "(?i)\\bhttps?://([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b"
+group = 1
+replacement_prefix = "REDACTED_DOMAIN"

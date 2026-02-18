@@ -1,0 +1,80 @@
+# test_input.txt
+# Mix of plain text, JSON, YAML, Terraform/HCL-ish, and random logs.
+
+Plain text:
+- Contact: alice.smith@corp.internal from 8.8.8.8 and 8.8.8.8/32
+- Another email same domain: bob@corp.internal
+- Another domain: charlie@other-domain.example
+- Repeated email: alice.smith@corp.internal
+- Public IPs repeated: 8.8.8.8 then 1.1.1.1 then 8.8.8.8 again
+- Private IPs should remain: 10.1.2.3, 172.16.9.9, 192.168.1.10
+- CGNAT should remain: 100.64.12.34
+- Link-local should remain: 169.254.10.20
+- Loopback should remain: 127.0.0.1
+- Doc/test-net should remain (per keep_cidrs): 203.0.113.55, 198.51.100.10, 192.0.2.123
+- Benchmark range should remain: 198.18.0.5
+- Multicast should remain: 224.0.0.1
+
+Tokens / IDs:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def  # repeated token should map to same REDACTED_TOKEN1
+Authorization: Bearer anotherTokenValue12345
+Hex-ish: deadbeefdeadbeefdeadbeefdeadbeef
+Hex-ish again: deadbeefdeadbeefdeadbeefdeadbeef
+AWS account ids: 123456789012 and 000000000000 and 123456789012 (repeat)
+
+Key/value username-like:
+user=bob username=alice principal=svc-platform principalId=ABC-123 subject=foo sub=bar owner=team1 requester=ionut caller=jenkins email=person@corp.internal
+user: bob
+username: alice
+principal: svc-platform
+principalId: ABC-123
+subject: foo
+sub: bar
+owner: team1
+requester: ionut
+caller: jenkins
+email: person@corp.internal
+
+JSON:
+{"user":"bob","username":"alice","principal":"svc-platform","principalId":"ABC-123","subject":"foo","sub":"bar","email":"person@corp.internal","ip":"8.8.8.8","cidr":"8.8.8.8/22"}
+{"user":"bob","email":"alice.smith@corp.internal","nested":{"caller":"jenkins","requester":"ionut"},"public":"1.1.1.1","private":"10.9.8.7","cgnat":"100.64.0.1"}
+{"message":"login for username=alice from 8.8.8.8","token":"Bearer should_not_match_here_because_not_prefixed","aws":"123456789012"}
+
+YAML:
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example
+  labels:
+    user: bob
+    owner: team1
+data:
+  contact: "alice.smith@corp.internal"
+  endpoint: "https://service.example/path?ip=8.8.8.8"
+  internal_ip: "10.1.2.3"
+  cgnat_ip: "100.64.12.34"
+  note: "principal: svc-platform"
+
+Terraform/HCL-ish:
+variable "owner" {
+  default = "team1"
+}
+locals {
+  user      = "bob"
+  username  = "alice"
+  principal = "svc-platform"
+  email     = "alice.smith@corp.internal"
+  public_ip = "8.8.8.8"
+  cidr_ip   = "1.1.1.1/24"
+  private_ip = "10.10.10.10"
+  cgnat_ip  = "100.64.12.34"
+}
+output "example" {
+  value = "user=bob email=alice.smith@corp.internal ip=8.8.8.8 token=Bearer anotherTokenValue12345"
+}
+
+Edge cases:
+- Not an IP: 999.999.999.999 should NOT change (invalid)
+- Looks like IP but too big: 256.1.2.3 should NOT change (invalid)
+- Mixed text: user=bob,ip=8.8.8.8,username=alice,principalId=ABC-123,email=charlie@other-domain.example
