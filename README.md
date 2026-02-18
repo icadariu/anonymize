@@ -185,7 +185,7 @@ charlie@other.com   → user3@example2.com
 Values for configured keys are replaced with:
 
 ```txt
-REDACTED
+[redacted]
 ```
 
 Supported formats:
@@ -205,10 +205,10 @@ principalId=ABC-123
 Tokens are replaced with incremental labels per rule:
 
 ```txt
-REDACTED_TOKEN1
-REDACTED_TOKEN2
-REDACTED_AWS_ACCOUNT1
-REDACTED_HEX1
+token-1
+token-2
+aws-account-1
+hex-1
 ```
 
 Repeated values map consistently within the same run.
@@ -287,7 +287,7 @@ name = "aws_account_id"
 type = "regex_map"
 enabled = true
 pattern = "\\b\\d{12}\\b"
-replacement_prefix = "REDACTED_AWS_ACCOUNT"
+replacement_prefix = "aws-account-"
 
 [[rules]]
 name = "bearer_tokens"
@@ -295,14 +295,14 @@ type = "regex_map"
 enabled = true
 pattern = "(?i)\\bBearer\\s+([A-Za-z0-9\\-\\._~\\+\\/]+=*)"
 group = 1
-replacement_prefix = "REDACTED_TOKEN"
+replacement_prefix = "token-"
 
 [[rules]]
 name = "long_hex"
 type = "regex_map"
 enabled = true
 pattern = "\\b[a-f0-9]{32,}\\b"
-replacement_prefix = "REDACTED_HEX"
+replacement_prefix = "hex-"
 ```
 
 ---

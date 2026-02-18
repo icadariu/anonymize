@@ -22,9 +22,16 @@ type State struct {
 
 	PublicIPMap map[string]string
 	PublicIPN   int
-	// NEW: host/domain mapping (per run)
+
+	// Flat hostname mapping (per run)
 	HostMap map[string]string
 	HostN   int
+
+	// Structured hostname mapping state (per run)
+	HostFirstLabelMap map[string]string
+	HostFirstLabelN   int
+	HostOtherLabelMap map[string]string
+	HostOtherLabelN   int
 
 	GenericMap   map[string]map[string]string // ruleName -> original -> replacement
 	GenericCount map[string]int               // ruleName -> counter
@@ -36,14 +43,16 @@ type StatsSink interface {
 
 func NewState(cfg *config.Config, stats StatsSink) (*State, error) {
 	return &State{
-		Cfg:            cfg,
-		Stats:          stats,
-		EmailLocalMap:  make(map[string]string),
-		EmailDomainMap: make(map[string]string),
-		PublicIPMap:    make(map[string]string),
-		HostMap:        make(map[string]string),
-		GenericMap:     make(map[string]map[string]string),
-		GenericCount:   make(map[string]int),
+		Cfg:               cfg,
+		Stats:             stats,
+		EmailLocalMap:     make(map[string]string),
+		EmailDomainMap:    make(map[string]string),
+		PublicIPMap:       make(map[string]string),
+		HostMap:           make(map[string]string),
+		HostFirstLabelMap: make(map[string]string),
+		HostOtherLabelMap: make(map[string]string),
+		GenericMap:        make(map[string]map[string]string),
+		GenericCount:      make(map[string]int),
 	}, nil
 }
 

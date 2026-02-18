@@ -17,7 +17,7 @@ Plain text:
 
 Tokens / IDs:
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def  # repeated token should map to same REDACTED_TOKEN1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def  # repeated token should map to same token-1
 Authorization: Bearer anotherTokenValue12345
 Hex-ish: deadbeefdeadbeefdeadbeefdeadbeef
 Hex-ish again: deadbeefdeadbeefdeadbeefdeadbeef
@@ -72,6 +72,50 @@ locals {
 }
 output "example" {
   value = "user=bob email=alice.smith@corp.internal ip=8.8.8.8 token=Bearer anotherTokenValue12345"
+}
+
+Credentials / secrets (plain text K=V):
+password=s3cr3tP@ssw0rd passwd=another-pass pwd=abc123
+api_key=AKIAIOSFODNN7EXAMPLE api-key=sk-live-abc123xyz token=ghp_abc123secret
+access_token=ya29.a0AfH6SM access_key=AKIAIOSFODNN7EXAMPLE
+refresh_token=1//0g-abc123 id_token=eyJhbGciOiJSUzI1NiJ9.abc.def
+client_secret=shhhdonttell client_id=oauth-client-123
+private_key=-----BEGIN RSA PRIVATE KEY----- signing_key=hmac-sha256-secret
+session_token=AQoXnyc4PI session_id=sess-abc123xyz
+connection_string=Server=mydb;Password=hunter2 dsn=postgres://admin:secret@db.corp.internal/mydb
+authorization=Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig
+webhook_secret=whsec_abc123 cookie=session=abc123; jwt=eyJhbGciOiJIUzI1NiJ9.payload.sig
+
+Credentials / secrets (JSON):
+{"password":"s3cr3tP@ssw0rd","username":"alice","email":"alice@corp.internal","host":"db.corp.internal"}
+{"api_key":"sk-live-abc123","access_token":"ya29.abc","refresh_token":"1//0g-xyz","client_secret":"shhh"}
+{"db_password":"hunter2","connection_string":"Server=mydb;Password=hunter2","dsn":"postgres://admin:secret@host/db"}
+{"authorization":"Bearer tok123","token":"ghp_secret","jwt":"eyJ.abc.def","session_id":"sess-xyz"}
+{"credentials":{"private_key":"-----BEGIN RSA PRIVATE KEY-----","signing_key":"hmac-secret"}}
+
+Credentials / secrets (YAML):
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+type: Opaque
+stringData:
+  password: "s3cr3tP@ssw0rd"
+  api_key: "sk-live-abc123xyz"
+  access_token: "ya29.a0AfH6SM"
+  client_secret: "shhhdonttell"
+  db_password: "hunter2"
+  connection_string: "Server=mydb;Password=hunter2;Database=app"
+  webhook_secret: "whsec_abc123"
+
+Credentials / secrets (Terraform/HCL-ish):
+locals {
+  password         = "s3cr3tP@ssw0rd"
+  api_key          = "sk-live-abc123xyz"
+  client_secret    = "shhhdonttell"
+  db_password      = "hunter2"
+  connection_string = "Server=mydb;Password=hunter2"
+  signing_key      = "hmac-sha256-secret"
 }
 
 Edge cases:

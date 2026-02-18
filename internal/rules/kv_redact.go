@@ -85,10 +85,7 @@ func (t *KVRedact) Apply(in string) (string, error) {
 		}
 
 		replaced++
-		// Keep exact key spelling from input (rawKey) so it remains familiar, but
-		// use lowercased key in the redacted label for consistency.
-		red := "REDACTED_" + sanitizeKey(key)
-		return quote + rawKey + quote + ":" + quote + red + quote
+		return quote + rawKey + quote + ":" + quote + "[redacted]" + quote
 	})
 
 	out2 := t.reLoose.ReplaceAllStringFunc(out, func(m string) string {
@@ -109,8 +106,7 @@ func (t *KVRedact) Apply(in string) (string, error) {
 			q = ""
 		}
 
-		red := "REDACTED_" + sanitizeKey(key)
-		return rawKey + sub[2] + q + red + q
+		return rawKey + sub[2] + q + "[redacted]" + q
 	})
 
 	if replaced > 0 {
@@ -119,22 +115,3 @@ func (t *KVRedact) Apply(in string) (string, error) {
 	return out2, nil
 }
 
-func sanitizeKey(k string) string {
-	// Keep it grep-friendly: letters, digits, underscore only.
-	// Convert other chars (.,-, etc.) to underscore.
-	var b strings.Builder
-	b.Grow(len(k))
-	for _, r := range k {
-		switch {
-		case r >= 'a' && r <= 'z':
-			b.WriteRune(r)
-		case r >= '0' && r <= '9':
-			b.WriteRune(r)
-		case r == '_':
-			b.WriteRune(r)
-		default:
-			b.WriteByte('_')
-		}
-	}
-	return b.String()
-}

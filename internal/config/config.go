@@ -65,7 +65,27 @@ type RuleConfig struct {
 }
 
 type HostnameMapConfig struct {
+	// If a matched hostname starts with any of these prefixes (case-insensitive), it is not anonymized.
+	// Useful to avoid double-mapping already-anonymized values (e.g. h1.example.com).
 	DenyPrefixes []string `toml:"deny_prefixes"`
+
+	// mode controls how hostnames are anonymized:
+	// - "flat" (default): whole hostname -> hostN.exampleN.com
+	// - "structured": preserves label depth; maps each label deterministically
+	Mode string `toml:"mode"`
+
+	// root_domain is the base domain used for anonymized hostnames (default: "example.com").
+	// In structured mode, the last labels will be replaced with this root domain
+	// (optionally preserving the original TLD).
+	RootDomain string `toml:"root_domain"`
+
+	// If true, keeps the original TLD and uses the first label of root_domain as the SLD.
+	// Example: root_domain="example.com", input="a.b.corp.co.uk" -> "h1.s1.example.uk"
+	PreserveTLD bool `toml:"preserve_tld"`
+
+	// Prefixes used for generated labels in structured mode.
+	HostLabelPrefix      string `toml:"host_label_prefix"`
+	SubdomainLabelPrefix string `toml:"subdomain_label_prefix"`
 }
 
 func Load(path string) (*Config, error) {
@@ -121,6 +141,20 @@ func applyDefaults(cfg *Config) {
 		cfg.IP.KeepCIDRs = defaultKeepCIDRs
 	}
 
+	// Hostname mapping defaults
+	if cfg.HostnameMap.Mode == "" {
+		cfg.HostnameMap.Mode = "flat"
+	}
+	if cfg.HostnameMap.RootDomain == "" {
+		cfg.HostnameMap.RootDomain = "example.com"
+	}
+	if cfg.HostnameMap.HostLabelPrefix == "" {
+		cfg.HostnameMap.HostLabelPrefix = "host"
+	}
+	if cfg.HostnameMap.SubdomainLabelPrefix == "" {
+		cfg.HostnameMap.SubdomainLabelPrefix = "subdomain"
+	}
+
 	if cfg.Email.UserPrefix == "" {
 		cfg.Email.UserPrefix = "user"
 	}
@@ -162,6 +196,19 @@ func validate(cfg *Config) error {
 		if r.Type == "" {
 			return fmt.Errorf("rules[%d].type is required", i)
 		}
+	}
+
+	// Hostname map validation
+	mode := strings.ToLower(strings.TrimSpace(cfg.HostnameMap.Mode))
+	if mode != "flat" && mode != "structured" {
+		return fmt.Errorf("hostname_map.mode must be 'flat' or 'structured'")
+	}
+	root := strings.TrimSpace(cfg.HostnameMap.RootDomain)
+	if root == "" || !strings.Contains(root, ".") {
+		return fmt.Errorf("hostname_map.root_domain must look like a domain (e.g. example.com)")
+	}
+	if strings.ContainsAny(root, " /:\t\n\r") {
+		return fmt.Errorf("hostname_map.root_domain must not contain spaces or slashes")
 	}
 	return nil
 }

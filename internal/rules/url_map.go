@@ -46,7 +46,7 @@ func (t *URLMap) Apply(in string) (string, error) {
 		port := u.Port()
 
 		// Reuse the same hostname mapping as hostname_map
-		mappedHost := t.mapHost(host)
+		mappedHost := mapHostname(host, t.st)
 		if port != "" {
 			u.Host = mappedHost + ":" + port
 		} else {
@@ -70,19 +70,6 @@ func (t *URLMap) Apply(in string) (string, error) {
 	return b.String(), nil
 }
 
-// Shares the same mapping table as hostname_map
-func (t *URLMap) mapHost(host string) string {
-	key := strings.ToLower(host)
-	if v, ok := t.st.HostMap[key]; ok {
-		return v
-	}
-	t.st.HostN++
-	n := t.st.HostN
-	mapped := "host" + itoa(n) + ".example" + itoa(n) + ".com"
-	t.st.HostMap[key] = mapped
-	return mapped
-}
-
 func trimURLTrailingPunct(s string) (string, string) {
 	// Common log punctuation after URLs: ), ], }, ., ,, ;
 	i := len(s)
@@ -95,19 +82,4 @@ func trimURLTrailingPunct(s string) (string, string) {
 		break
 	}
 	return s[:i], s[i:]
-}
-
-func itoa(n int) string {
-	// small local itoa to avoid importing strconv repeatedly
-	if n == 0 {
-		return "0"
-	}
-	var b [32]byte
-	i := len(b)
-	for n > 0 {
-		i--
-		b[i] = byte('0' + (n % 10))
-		n /= 10
-	}
-	return string(b[i:])
 }

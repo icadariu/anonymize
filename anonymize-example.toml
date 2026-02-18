@@ -22,6 +22,30 @@ values = [
   { from = "foo", to = "BAR" },
 ]
 
+[hostname_map]
+# mode:
+# - "flat" (default): whole hostname -> hostN.exampleN.com
+# - "structured": preserves label depth and maps each label deterministically
+#   e.g. myapp.admin.corp.com -> h1.s1.example.com  (same depth, shorter labels)
+mode = "structured"
+
+# root_domain is the anonymized base domain appended to all output hostnames.
+root_domain = "example.com"
+
+# If true, preserves the original TLD and uses the first label of root_domain as the SLD.
+# e.g. corp.co.uk  ->  h1.example.uk   (TLD "uk" preserved)
+#      corp.com    ->  h1.example.com
+preserve_tld = true
+
+# Prefixes for generated labels in structured mode.
+# First label (the "host" part) gets host_label_prefix + N
+# All other labels (subdomains) get subdomain_label_prefix + N
+host_label_prefix = "h"
+subdomain_label_prefix = "s"
+
+# Skip tokens that already look anonymized to avoid double-mapping.
+deny_prefixes = ["h", "s"]
+
 [ip]
 # Public IPv4 mapping sequence:
 #   1st -> 111.111.111.111
@@ -66,8 +90,10 @@ domain_tld = "com"
 
 [keys]
 # Redact values for these keys across formats: JSON/YAML/HCL/plain K=V.
-# Output becomes: REDACTED_<key> (e.g., REDACTED_user, REDACTED_principalid)
+# Output becomes: REDACTED_<key> (e.g., REDACTED_password, REDACTED_api_key)
+# Matching is case-insensitive. Add any domain-specific keys for your environment.
 redact_value = [
+  # Identity
   "user",
   "username",
   "principal",
@@ -80,6 +106,60 @@ redact_value = [
   "email",
   "host",
   "hostname",
+
+  # Passwords
+  "password",
+  "passwd",
+  "pass",
+  "pwd",
+  "db_password",
+  "db_pass",
+  "database_password",
+  "database_pass",
+
+  # Secrets & tokens
+  "secret",
+  "token",
+  "api_key",
+  "api-key",
+  "access_key",
+  "access_token",
+  "access-token",
+  "refresh_token",
+  "refresh-token",
+  "id_token",
+  "auth_token",
+  "auth-token",
+  "session_token",
+  "session_id",
+
+  # OAuth / client credentials
+  "client_secret",
+  "client-secret",
+  "client_id",
+  "client-id",
+
+  # Private / signing keys
+  "private_key",
+  "private-key",
+  "signing_key",
+  "encryption_key",
+
+  # Connection strings
+  "connection_string",
+  "dsn",
+
+  # HTTP / auth headers often logged as key=value
+  "authorization",
+  "x-api-key",
+  "x-auth-token",
+
+  # Misc credentials
+  "credential",
+  "credentials",
+  "jwt",
+  "cookie",
+  "webhook_secret",
 ]
 
 # ----------------------------
@@ -121,7 +201,7 @@ name = "aws_account_id"
 type = "regex_map"
 enabled = true
 pattern = "\\b\\d{12}\\b"
-replacement_prefix = "REDACTED_AWS_ACCOUNT"
+replacement_prefix = "aws-account-"
 
 [[rules]]
 name = "bearer_tokens"
@@ -129,14 +209,14 @@ type = "regex_map"
 enabled = true
 pattern = "(?i)\\bBearer\\s+([A-Za-z0-9\\-\\._~\\+\\/]+=*)"
 group = 1
-replacement_prefix = "REDACTED_TOKEN"
+replacement_prefix = "token-"
 
 [[rules]]
 name = "long_hex"
 type = "regex_map"
 enabled = true
 pattern = "\\b[a-f0-9]{32,}\\b"
-replacement_prefix = "REDACTED_HEX"
+replacement_prefix = "hex-"
 
 # Fallback rule if you do NOT implement url_map/hostname_map.
 # Keep disabled if url_map/hostname_map is enabled to avoid double-mapping.
@@ -146,4 +226,4 @@ type = "regex_map"
 enabled = false
 pattern = "(?i)\\bhttps?://([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b"
 group = 1
-replacement_prefix = "REDACTED_DOMAIN"
+replacement_prefix = "domain-"
